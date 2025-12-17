@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VerticalTimer</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>⏱</text></svg>">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            padding: 20px;
+        }
+
+        body.light {
+            background-color: #f5f5f5;
+            color: #000000;
+        }
+
+        body.dark {
+            background-color: #1a1a1a;
+            color: #ffffff;
+        }
+
+        .container {
+            text-align: center;
+            padding: 40px 30px;
+            border: 2px solid currentColor;
+            border-radius: 8px;
+            position: relative;
+            max-width: 350px;
+        }
+
+        body.light .container {
+            background-color: #ffffff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        body.dark .container {
+            background-color: #000000;
+            box-shadow: 0 4px 6px rgba(255, 255, 255, 0.1);
+        }
+
+        .theme-toggle {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: 1.5px solid currentColor;
+            color: inherit;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 16px;
+            transition: transform 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.1);
+        }
+
+        .theme-toggle:active {
+            transform: scale(0.95);
+        }
+
+        .timer-display {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 40px;
+            margin-top: 20px;
+        }
+
+        .time-unit {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        .time-value {
+            font-size: 48px;
+            font-weight: bold;
+            letter-spacing: 3px;
+            line-height: 1;
+            position: relative;
+        }
+
+        .milliseconds {
+            position: absolute;
+            bottom: 0;
+            right: -30px;
+            font-size: 18px;
+            font-weight: normal;
+            opacity: 0.7;
+        }
+
+        .time-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-top: 8px;
+            opacity: 0.6;
+        }
+
+        .separator {
+            font-size: 24px;
+            opacity: 0.3;
+            margin: -5px 0;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        button.control-btn {
+            background: none;
+            border: 2px solid currentColor;
+            color: inherit;
+            padding: 6px 16px;
+            font-size: 22px;
+            font-family: 'Courier New', monospace;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 30px;
+            height: 35px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        button.control-btn:hover {
+            opacity: 0.3;
+            transform: scale(1.05);
+        }
+
+        button.control-btn:active {
+            transform: scale(0.98);
+        }
+
+        button.control-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        button.control-btn:disabled:hover {
+            opacity: 0.3;
+            transform: none;
+        }
+
+    </style>
+</head>
+<body class="light">
+    <div class="container">
+        <button class="theme-toggle" onclick="toggleTheme()" title="Cambiar tema">◐</button>
+        <div class="timer-display">
+            <div class="time-unit">
+                <div class="time-value" id="hours">00</div>
+                <div class="time-label">Horas</div>
+            </div>
+            <div class="separator">:</div>
+            <div class="time-unit">
+                <div class="time-value" id="minutes">00</div>
+                <div class="time-label">Minutos</div>
+            </div>
+            <div class="separator">:</div>
+            <div class="time-unit">
+                <div class="time-value" id="seconds">00<span class="milliseconds" id="milliseconds">00</span></div>
+                <div class="time-label">Segundos</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="control-btn" id="startPauseBtn" onclick="startPause()" title="Iniciar/Pausar">▶</button>
+            <button class="control-btn" id="resetBtn" onclick="reset()" title="Reiniciar">↻</button>
+        </div>
+    </div>
+
+    <script>
+        let startTime = 0;
+        let elapsedTime = 0;
+        let timerInterval = null;
+        let isRunning = false;
+
+        function toggleTheme() {
+            document.body.classList.toggle('light');
+            document.body.classList.toggle('dark');
+        }
+
+        function startPause() {
+            if (isRunning) {
+                pause();
+            } else {
+                start();
+            }
+        }
+
+        function start() {
+            startTime = Date.now() - elapsedTime;
+            timerInterval = setInterval(updateDisplay, 10);
+            isRunning = true;
+            document.getElementById('startPauseBtn').textContent = '⏸';
+        }
+
+        function pause() {
+            clearInterval(timerInterval);
+            isRunning = false;
+            document.getElementById('startPauseBtn').textContent = '▶';
+        }
+
+        function reset() {
+            clearInterval(timerInterval);
+            startTime = 0;
+            elapsedTime = 0;
+            isRunning = false;
+            document.getElementById('startPauseBtn').textContent = '▶';
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            if (isRunning) {
+                elapsedTime = Date.now() - startTime;
+            }
+
+            let totalMilliseconds = elapsedTime;
+            let hours = Math.floor(totalMilliseconds / (1000 * 60 * 60));
+            let minutes = Math.floor((totalMilliseconds % (1000 * 60 * 60)) / (1000 * 60));
+            let seconds = Math.floor((totalMilliseconds % (1000 * 60)) / 1000);
+            let milliseconds = Math.floor((totalMilliseconds % 1000) / 10);
+
+            document.getElementById('hours').innerHTML = pad(hours, 2);
+            document.getElementById('minutes').innerHTML = pad(minutes, 2);
+            document.getElementById('seconds').innerHTML = pad(seconds, 2) + '<span class="milliseconds" id="milliseconds">' + pad(milliseconds, 2) + '</span>';
+        }
+
+        function pad(number, length) {
+            return String(number).padStart(length, '0');
+        }
+
+        // Inicializar la visualización
+        updateDisplay();
+    </script>
+</body>
+</html>
